@@ -65,7 +65,7 @@ public class HTMLScheduleParser implements IScheduleParser {
                 if (!contentValue.isEmpty()) {
                     try {
                         OffsetDateTime offsetDateTime = OffsetDateTime.parse(contentValue);
-                        return offsetDateTime.toLocalDateTime();
+                        return offsetDateTime.toLocalDateTime().plusDays(30);
                     } catch (DateTimeParseException e) {
                         log.warn("Не удалось распарсить дату изменения: {}", e.toString());
                         return null;

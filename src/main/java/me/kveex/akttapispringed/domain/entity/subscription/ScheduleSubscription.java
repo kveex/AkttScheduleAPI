@@ -1,4 +1,4 @@
-package me.kveex.akttapispringed.domain.entity.webhook;
+package me.kveex.akttapispringed.domain.entity.subscription;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -10,12 +10,15 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 @ToString
-@Table(name = "webhooks")
-public class Webhook {
+@Table(name = "schedule_subscriptions")
+public class ScheduleSubscription {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String url;
+    private String callbackUrl;
+
+    @Enumerated(EnumType.STRING)
+    private ScheduleSubscriptionMode mode;
 }

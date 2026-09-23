@@ -10,7 +10,7 @@ import me.kveex.akttapispringed.repository.LessonRepository;
 import me.kveex.akttapispringed.repository.ScheduleRepository;
 import me.kveex.akttapispringed.repository.TeacherRepository;
 import me.kveex.akttapispringed.service.ScheduleParserService;
-import me.kveex.akttapispringed.service.WebhookService;
+import me.kveex.akttapispringed.service.ScheduleSubscriptionService;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -33,7 +33,7 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
     private final LessonRepository lessonRepository;
     private final TeacherRepository teacherRepository;
     private final GroupRepository groupRepository;
-    private final WebhookService webhookService;
+    private final ScheduleSubscriptionService scheduleSubscriptionService;
 
     private LocalDate savedScheduleDate;
 
@@ -129,7 +129,7 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
         }
         schedule.setLessons(lessons);
 
-        webhookService.sendUpdate(editTimeStamp.toString());
+        scheduleSubscriptionService.sendUpdate(editTimeStamp);
         log.info("Добавлено новое расписание на дату: [{}] | Время изменения: [{}]", scheduleDate, editTimeStamp);
     }
 
