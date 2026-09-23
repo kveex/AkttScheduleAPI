@@ -1,6 +1,7 @@
 package me.kveex.akttapispringed.service.impl;
 
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.kveex.akttapispringed.domain.entity.schedule.*;
 import me.kveex.akttapispringed.parser.PDFScheduleParser;
@@ -9,6 +10,7 @@ import me.kveex.akttapispringed.repository.LessonRepository;
 import me.kveex.akttapispringed.repository.ScheduleRepository;
 import me.kveex.akttapispringed.repository.TeacherRepository;
 import me.kveex.akttapispringed.service.ScheduleParserService;
+import me.kveex.akttapispringed.service.WebhookService;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -21,6 +23,7 @@ import java.util.regex.Pattern;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class ScheduleParserServiceImpl implements ScheduleParserService {
     private static final int GROUP_TIME_COLUMN = 1;
     private static final int GROUP_SUBJECT_COLUMN = 2;
@@ -30,6 +33,8 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
     private final LessonRepository lessonRepository;
     private final TeacherRepository teacherRepository;
     private final GroupRepository groupRepository;
+    private final WebhookService webhookService;
+
     private LocalDate savedScheduleDate;
 
     private static final Pattern roomPattern = Pattern.compile(
@@ -44,13 +49,6 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
     private record Pair<A, B>(A first, B second) {
         A getFirst() { return first; }
         B getSecond() { return second; }
-    }
-
-    protected ScheduleParserServiceImpl(ScheduleRepository scheduleRepository, TeacherRepository teacherRepository, GroupRepository groupRepository, LessonRepository lessonRepository) {
-        this.scheduleRepository = scheduleRepository;
-        this.teacherRepository = teacherRepository;
-        this.groupRepository = groupRepository;
-        this.lessonRepository = lessonRepository;
     }
 
     public void parsePdf(byte[] bytes) {
@@ -131,7 +129,8 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
         }
         schedule.setLessons(lessons);
 
-        log.info("Добавлено новое расписание на дату: [{}] | Время изменения: [{}]", scheduleDate, editTimeStamp.toString());
+        webhookService.sendUpdate(editTimeStamp.toString());
+        log.info("Добавлено новое расписание на дату: [{}] | Время изменения: [{}]", scheduleDate, editTimeStamp);
     }
 
     /**
