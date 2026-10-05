@@ -1,6 +1,6 @@
 package me.kveex.akttapispringed.service;
 
-import me.kveex.akttapispringed.domain.dto.ScheduleSubscriptionRequest;
+import me.kveex.akttapispringed.domain.dto.subscription.ScheduleSubscriptionRequest;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;

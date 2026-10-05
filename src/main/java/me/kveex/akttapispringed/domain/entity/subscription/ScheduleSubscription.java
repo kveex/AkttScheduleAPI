@@ -21,4 +21,14 @@ public class ScheduleSubscription {
 
     @Enumerated(EnumType.STRING)
     private ScheduleSubscriptionMode mode;
+
+    @Enumerated(EnumType.STRING)
+    private ScheduleSubscriptionStatus status;
+
+    @Column(nullable = false)
+    private Integer failureCount;
+
+    public void incrementFailureCount() {
+        this.failureCount += 1;
+    }
 }

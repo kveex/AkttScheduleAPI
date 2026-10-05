@@ -1,6 +1,10 @@
 package me.kveex.akttapispringed.parser;
 
 import lombok.extern.slf4j.Slf4j;
+import me.kveex.akttapispringed.domain.entity.schedule.Schedule;
+import me.kveex.akttapispringed.domain.entity.schedule.ScheduleUpdateLog;
+import me.kveex.akttapispringed.repository.ScheduleUpdateLoggingRepository;
+import me.kveex.akttapispringed.security.ScheduleUserDetails;
 import me.kveex.akttapispringed.service.impl.ScheduleParserServiceImpl;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -13,20 +17,18 @@ import java.awt.geom.Rectangle2D;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-// Класс сгенерирован ИИ, возможно будет заменён на более правильный и удобный формат добавления расписаний заранее
+// Класс сгенерирован ИИ, ВОЗМОЖНО будет заменён на более правильный и удобный формат добавления расписаний заранее
 @Slf4j
 public class PDFScheduleParser implements IScheduleParser {
 
     private final ScheduleParserServiceImpl scheduleParserService;
+    private final ScheduleUpdateLoggingRepository scheduleUpdateLoggingRepository;
     private final byte[] bytes;
+    private final ScheduleUserDetails userDetails;
 
     private PDDocument document;
 
@@ -63,10 +65,14 @@ public class PDFScheduleParser implements IScheduleParser {
 
     public PDFScheduleParser(
             ScheduleParserServiceImpl scheduleParserService,
-            byte[] bytes
+            ScheduleUpdateLoggingRepository scheduleUpdateLoggingRepository,
+            byte[] bytes,
+            ScheduleUserDetails userDetails
     ) {
         this.scheduleParserService = scheduleParserService;
+        this.scheduleUpdateLoggingRepository = scheduleUpdateLoggingRepository;
         this.bytes = bytes;
+        this.userDetails = userDetails;
     }
 
     @Override
@@ -83,12 +89,23 @@ public class PDFScheduleParser implements IScheduleParser {
                 );
             }
 
-            scheduleParserService.parse(
+            Optional<Schedule> scheduleOptional = scheduleParserService.parse(
                     scheduleEditDate(),
                     scheduleDateLines(),
                     timeAndInfoForScheduleGroup(),
                     isWholeScheduleDistant()
             );
+
+            if (scheduleOptional.isPresent()) {
+                ScheduleUpdateLog updateLog = ScheduleUpdateLog.builder()
+                        .schedule(scheduleOptional.get())
+                        .user(userDetails.getUser())
+                        .timestamp(LocalDateTime.now())
+                        .build();
+
+                this.scheduleUpdateLoggingRepository.save(updateLog);
+            }
+
         } catch (IOException e) {
             log.info("Что-то случилось с PDF файлом: {}", e.getMessage());
         }

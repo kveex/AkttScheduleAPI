@@ -1,4 +1,4 @@
-package me.kveex.akttapispringed.domain.dto;
+package me.kveex.akttapispringed.domain.dto.subscription;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

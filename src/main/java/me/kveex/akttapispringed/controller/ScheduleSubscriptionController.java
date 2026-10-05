@@ -2,7 +2,7 @@ package me.kveex.akttapispringed.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import me.kveex.akttapispringed.domain.dto.ScheduleSubscriptionRequest;
+import me.kveex.akttapispringed.domain.dto.subscription.ScheduleSubscriptionRequest;
 import me.kveex.akttapispringed.service.ScheduleSubscriptionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

@@ -1,12 +1,14 @@
 package me.kveex.akttapispringed.service;
 
+import me.kveex.akttapispringed.domain.entity.schedule.Schedule;
 import me.kveex.akttapispringed.service.impl.ScheduleParserServiceImpl;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 public interface ScheduleParserService {
-    void parse(LocalDateTime editTimeStamp, List<String> scheduleDateLines, List<ScheduleParserServiceImpl.Info> timeAndInfoForScheduleGroup, boolean isWholeScheduleDistant);
+    Optional<Schedule> parse(LocalDateTime editTimeStamp, List<String> scheduleDateLines, List<ScheduleParserServiceImpl.Info> timeAndInfoForScheduleGroup, boolean isWholeScheduleDistant);
     <T> List<ScheduleParserServiceImpl.Info> getTimeAndInfoList(Iterable<T> rows, Function<T, List<String>> rowToCells);
 }

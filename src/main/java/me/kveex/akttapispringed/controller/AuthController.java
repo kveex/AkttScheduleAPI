@@ -2,9 +2,9 @@ package me.kveex.akttapispringed.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import me.kveex.akttapispringed.domain.dto.AuthResponse;
-import me.kveex.akttapispringed.domain.dto.LoginRequest;
-import me.kveex.akttapispringed.domain.dto.RegistrationRequest;
+import me.kveex.akttapispringed.domain.dto.auth.AuthResponse;
+import me.kveex.akttapispringed.domain.dto.auth.LoginRequest;
+import me.kveex.akttapispringed.domain.dto.auth.RegistrationRequest;
 import me.kveex.akttapispringed.service.AuthenticationService;
 import me.kveex.akttapispringed.service.RegistrationService;
 import org.springframework.http.ResponseEntity;

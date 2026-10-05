@@ -5,10 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.kveex.akttapispringed.domain.entity.schedule.*;
 import me.kveex.akttapispringed.parser.PDFScheduleParser;
-import me.kveex.akttapispringed.repository.GroupRepository;
-import me.kveex.akttapispringed.repository.LessonRepository;
-import me.kveex.akttapispringed.repository.ScheduleRepository;
-import me.kveex.akttapispringed.repository.TeacherRepository;
+import me.kveex.akttapispringed.repository.*;
+import me.kveex.akttapispringed.security.ScheduleUserDetails;
 import me.kveex.akttapispringed.service.ScheduleParserService;
 import me.kveex.akttapispringed.service.ScheduleSubscriptionService;
 import org.springframework.stereotype.Service;
@@ -33,6 +31,7 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
     private final LessonRepository lessonRepository;
     private final TeacherRepository teacherRepository;
     private final GroupRepository groupRepository;
+    private final ScheduleUpdateLoggingRepository scheduleUpdateLoggingRepository;
     private final ScheduleSubscriptionService scheduleSubscriptionService;
 
     private LocalDate savedScheduleDate;
@@ -51,8 +50,8 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
         B getSecond() { return second; }
     }
 
-    public void parsePdf(byte[] bytes) {
-        PDFScheduleParser parser = new PDFScheduleParser(this, bytes);
+    public void parsePdf(byte[] bytes, ScheduleUserDetails userDetails) {
+        PDFScheduleParser parser = new PDFScheduleParser(this, scheduleUpdateLoggingRepository, bytes, userDetails);
         parser.parse();
     }
 
@@ -105,11 +104,11 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
     }
 
     @Transactional
-    public void parse(LocalDateTime editTimeStamp, List<String> scheduleDateLines, List<Info> timeAndInfoForScheduleGroup, boolean isWholeScheduleDistant) {
+    public Optional<Schedule> parse(LocalDateTime editTimeStamp, List<String> scheduleDateLines, List<Info> timeAndInfoForScheduleGroup, boolean isWholeScheduleDistant) {
         boolean scheduleExists = this.scheduleRepository.existsByEditTimeStamp(editTimeStamp);
         if (scheduleExists) {
             log.info("Расписание с временем изменения [{}] уже существует, ничего не делаем", editTimeStamp.toString());
-            return;
+            return Optional.empty();
         }
 
         LocalDate scheduleDate = collectScheduleDate(scheduleDateLines);
@@ -121,7 +120,7 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
                 .scheduleDate(scheduleDate)
                 .build();
 
-        this.scheduleRepository.save(schedule);
+        Schedule createdSchedule = this.scheduleRepository.save(schedule);
 
         for (Info info : timeAndInfoForScheduleGroup) {
             List<Lesson> lessonInfo = buildLessons(info, schedule, isWholeScheduleDistant);
@@ -131,6 +130,8 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
 
         scheduleSubscriptionService.sendUpdate(editTimeStamp);
         log.info("Добавлено новое расписание на дату: [{}] | Время изменения: [{}]", scheduleDate, editTimeStamp);
+
+        return Optional.of(createdSchedule);
     }
 
     /**
@@ -428,7 +429,7 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
                     ? new Pair<>("12:10 - 13:40", LessonTimeType.THIRD)
                     : new Pair<>("10:40 - 11:50", LessonTimeType.THIRD_SHORT);
             case "7,8" -> !todayIsSaturday
-                    ? new Pair<>("13:50 - 14:20", LessonTimeType.FOURTH)
+                    ? new Pair<>("13:50 - 15:20", LessonTimeType.FOURTH)
                     : new Pair<>("12:00 - 13:10", LessonTimeType.FOURTH_SHORT);
             case "УП" -> new Pair<>("Учебная практика", LessonTimeType.LEARNING_PRACTICE);
             case "ПП" -> new Pair<>("Производственная практика", LessonTimeType.PRODUCTION_PRACTICE);

@@ -1,4 +1,4 @@
-package me.kveex.akttapispringed.domain.dto;
+package me.kveex.akttapispringed.domain.dto.auth;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

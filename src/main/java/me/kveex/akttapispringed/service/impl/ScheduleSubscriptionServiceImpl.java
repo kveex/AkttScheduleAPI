@@ -1,9 +1,11 @@
 package me.kveex.akttapispringed.service.impl;
 
-import me.kveex.akttapispringed.domain.dto.ScheduleSubscriptionRequest;
-import me.kveex.akttapispringed.domain.dto.ScheduleUpdate;
+import lombok.extern.slf4j.Slf4j;
+import me.kveex.akttapispringed.domain.dto.subscription.ScheduleSubscriptionRequest;
+import me.kveex.akttapispringed.domain.dto.subscription.ScheduleUpdate;
 import me.kveex.akttapispringed.domain.entity.subscription.ScheduleSubscription;
 import me.kveex.akttapispringed.domain.entity.subscription.ScheduleSubscriptionMode;
+import me.kveex.akttapispringed.domain.entity.subscription.ScheduleSubscriptionStatus;
 import me.kveex.akttapispringed.repository.ScheduleSubscriptionRepository;
 import me.kveex.akttapispringed.service.ScheduleSubscriptionService;
 import org.springframework.core.retry.RetryTemplate;
@@ -11,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
 import java.time.LocalDate;
@@ -18,8 +21,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@Slf4j
 public class ScheduleSubscriptionServiceImpl implements ScheduleSubscriptionService {
 
+    private static final int MAX_FAILURE_COUNT = 3;
     private final ScheduleSubscriptionRepository scheduleSubscriptionRepository;
     private final RestClient restClient;
     private final RetryTemplate retryTemplate;
@@ -42,19 +47,36 @@ public class ScheduleSubscriptionServiceImpl implements ScheduleSubscriptionServ
 
     @Override
     public void sendUpdate(LocalDateTime scheduleEditDateTime) {
-        ScheduleUpdate update = ScheduleUpdate.create();
         List<ScheduleSubscription> scheduleSubscriptions = scheduleSubscriptionRepository.findAll();
 
         for (ScheduleSubscription subscription : scheduleSubscriptions) {
-            if (subscription.getMode().equals(ScheduleSubscriptionMode.ONLY_NEW) && scheduleEditDateTime.toLocalDate().isBefore(LocalDate.now())) continue;
-            retryTemplate.invoke(() -> {
-                this.restClient.post()
-                        .uri(subscription.getCallbackUrl())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(update)
-                        .retrieve()
-                        .toBodilessEntity();
-            });
+            if (subscription.getMode() == ScheduleSubscriptionMode.ONLY_NEW && scheduleEditDateTime.toLocalDate().isBefore(LocalDate.now())) continue;
+
+            if (subscription.getFailureCount() >= MAX_FAILURE_COUNT) {
+                scheduleSubscriptionRepository.delete(subscription);
+                continue;
+            }
+
+            try {
+                retryTemplate.invoke(() -> postUpdate(subscription.getCallbackUrl()));
+            } catch (ResourceAccessException _) {
+                log.error("Не удалось оповестить по вебхуку [{}]", subscription.getCallbackUrl());
+                subscription.setStatus(ScheduleSubscriptionStatus.FAILED);
+                subscription.incrementFailureCount();
+
+                scheduleSubscriptionRepository.save(subscription);
+            }
         }
+    }
+
+    private void postUpdate(String callbackUrl) {
+        ScheduleUpdate update = ScheduleUpdate.create();
+
+        this.restClient.post()
+                .uri(callbackUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(update)
+                .retrieve()
+                .toBodilessEntity();
     }
 }

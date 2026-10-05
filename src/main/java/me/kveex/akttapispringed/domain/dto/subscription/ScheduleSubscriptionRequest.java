@@ -1,4 +1,4 @@
-package me.kveex.akttapispringed.domain.dto;
+package me.kveex.akttapispringed.domain.dto.subscription;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import me.kveex.akttapispringed.domain.entity.subscription.ScheduleSubscription;
 import me.kveex.akttapispringed.domain.entity.subscription.ScheduleSubscriptionMode;
+import me.kveex.akttapispringed.domain.entity.subscription.ScheduleSubscriptionStatus;
 
 @Data
 @AllArgsConstructor
@@ -23,6 +24,11 @@ public class ScheduleSubscriptionRequest {
     ScheduleSubscriptionMode mode;
 
     public ScheduleSubscription toEntity() {
-        return ScheduleSubscription.builder().callbackUrl(callbackUrl).mode(mode).build();
+        return ScheduleSubscription.builder()
+                .callbackUrl(callbackUrl)
+                .mode(mode)
+                .status(ScheduleSubscriptionStatus.OK)
+                .failureCount(0)
+                .build();
     }
 }

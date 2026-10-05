@@ -2,6 +2,7 @@ package me.kveex.akttapispringed.domain.entity.schedule;
 
 import jakarta.persistence.*;
 import lombok.*;
+import me.kveex.akttapispringed.domain.dto.schedule.LessonData;
 
 @Setter
 @Getter
@@ -48,4 +49,17 @@ public class Lesson {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, name = "lesson_type")
     private LessonType lessonType;
+
+    public LessonData toDto() {
+        return LessonData.builder()
+                .groupName(group.getName())
+                .teacherName(teacher.getName())
+                .lessonTime(lessonTime)
+                .lessonTimeType(lessonTimeType)
+                .subjectName(subjectName)
+                .classroom(classroom)
+                .subgroup(subgroup)
+                .lessonType(lessonType)
+                .build();
+    }
 }
