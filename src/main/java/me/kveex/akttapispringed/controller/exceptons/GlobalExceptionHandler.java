@@ -48,4 +48,9 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(new ErrorResponse(exception.getMessage()), HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(TakenLoginException.class)
+    public ResponseEntity<ErrorResponse> handleTakenLoginException(TakenLoginException exception) {
+        return new ResponseEntity<>(new ErrorResponse(exception.getMessage()), HttpStatus.CONFLICT);
+    }
+
 }

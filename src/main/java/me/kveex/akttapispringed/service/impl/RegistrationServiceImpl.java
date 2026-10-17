@@ -2,6 +2,7 @@ package me.kveex.akttapispringed.service.impl;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import me.kveex.akttapispringed.controller.exceptons.TakenLoginException;
 import me.kveex.akttapispringed.domain.entity.user.User;
 import me.kveex.akttapispringed.domain.entity.user.UserRole;
 import me.kveex.akttapispringed.repository.UserRepository;
@@ -19,7 +20,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     @Override
     public void registerUser(String login, String password) {
         if (userRepository.existsByLogin(login)) {
-            throw new IllegalArgumentException("Этот логин уже занят!");
+            throw new TakenLoginException();
         }
 
         User user = User.builder()

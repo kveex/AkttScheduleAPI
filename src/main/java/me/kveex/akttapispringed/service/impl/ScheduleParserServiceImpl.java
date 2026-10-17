@@ -51,6 +51,7 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
     }
 
     public void parsePdf(byte[] bytes, ScheduleUserDetails userDetails) {
+        // TODO: Сделать так, чтобы при парсинге пдф отправлялось оповещение о удачном парсинге, конкретному пользователю, через вебхук
         PDFScheduleParser parser = new PDFScheduleParser(this, scheduleUpdateLoggingRepository, bytes, userDetails);
         parser.parse();
     }
@@ -106,12 +107,17 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
     @Transactional
     public Optional<Schedule> parse(LocalDateTime editTimeStamp, List<String> scheduleDateLines, List<Info> timeAndInfoForScheduleGroup, boolean isWholeScheduleDistant) {
         boolean scheduleExists = this.scheduleRepository.existsByEditTimeStamp(editTimeStamp);
+        LocalDate scheduleDate = collectScheduleDate(scheduleDateLines);
+
         if (scheduleExists) {
-            log.info("Расписание с временем изменения [{}] уже существует, ничего не делаем", editTimeStamp.toString());
+            log.debug(
+                    "Расписание с датой [{}] и временем изменения [{}] уже существует, ничего не делаем",
+                    scheduleDate,
+                    editTimeStamp.toString().replace("T", " ")
+            );
             return Optional.empty();
         }
 
-        LocalDate scheduleDate = collectScheduleDate(scheduleDateLines);
         this.savedScheduleDate = scheduleDate;
         List<Lesson> lessons = new ArrayList<>();
 
@@ -416,6 +422,7 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
     private Pair<String, LessonTimeType> getTime(String rawTime, boolean isInSecondCampus) {
         boolean todayIsSaturday = savedScheduleDate.getDayOfWeek() == DayOfWeek.SATURDAY;
         return switch (rawTime) {
+            case "0" -> new Pair<>("8:00 - 8:30", LessonTimeType.ZEROTH);
             case "1,2" -> !todayIsSaturday
                     ? new Pair<>("8:30 - 10:00", LessonTimeType.FIRST)
                     : new Pair<>("8:00 - 9:10", LessonTimeType.FIRST_SHORT);
