@@ -1,10 +1,11 @@
 package me.kveex.akttapispringed.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import me.kveex.akttapispringed.controller.exceptons.BadScheduleRequestException;
 import me.kveex.akttapispringed.controller.exceptons.ScheduleNotFoundException;
 import me.kveex.akttapispringed.domain.dto.schedule.LessonData;
+import me.kveex.akttapispringed.domain.dto.schedule.ScheduleRequest;
 import me.kveex.akttapispringed.domain.dto.schedule.ScheduleResponse;
 import me.kveex.akttapispringed.domain.entity.schedule.*;
 import me.kveex.akttapispringed.repository.GroupRepository;
@@ -20,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -36,7 +38,7 @@ public class ScheduleController {
     private final LessonRepository lessonRepository;
 
     @PostMapping("/pdf")
-    public ResponseEntity<String> loadPdf(@RequestParam("file") MultipartFile file, @AuthenticationPrincipal ScheduleUserDetails userDetails) throws IOException {
+    public ResponseEntity<Void> loadPdf(@RequestParam("file") MultipartFile file, @AuthenticationPrincipal ScheduleUserDetails userDetails) throws IOException {
         this.scheduleParserService.parsePdf(file.getBytes(), userDetails);
         return ResponseEntity.ok().build();
     }
@@ -56,42 +58,29 @@ public class ScheduleController {
     }
 
     @GetMapping
-    public ResponseEntity<ScheduleResponse> getSchedule(
-            @RequestParam(name = "group_name", required = false) String groupName,
-            @RequestParam(name = "teacher_name", required = false) String teacherName,
-            @RequestParam(name = "schedule_date", required = false) LocalDate scheduleDate,
-            @RequestParam(name = "subgroup", required = false) String paramSubgroup) {
-        if (groupName == null && teacherName == null) {
-            throw new BadScheduleRequestException();
-        }
-
-        Optional<Schedule> schedule = scheduleDate == null
+    public ResponseEntity<ScheduleResponse> getSchedule(@Valid ScheduleRequest request) {
+        Optional<LocalDate> scheduleDate = Optional.ofNullable(request.getScheduleDate());
+        Optional<Schedule> schedule = scheduleDate.isEmpty()
             ? scheduleRepository.findFirstByOrderByScheduleDateDesc()
-            : scheduleRepository.getScheduleByScheduleDate(scheduleDate);
+            : scheduleRepository.getScheduleByScheduleDate(scheduleDate.get());
 
         if (schedule.isEmpty()) {
             throw new ScheduleNotFoundException();
         }
 
-        Subgroup subgroup = paramSubgroup == null
-                ? Subgroup.BOTH
-                : Subgroup.fromString(paramSubgroup);
-
-        List<LessonData> lessons;
-
-        if (groupName != null) {
-            lessons = lessonRepository.findForGroup(schedule.get().getId(), groupName)
+        List<LessonData> lessons = new ArrayList<>(switch (request.getTarget()) {
+            case GROUP -> lessonRepository.findForGroup(schedule.get().getId(), request.getValue())
                     .stream()
-                    .sorted(Comparator.comparingInt(lesson -> lesson.getLessonTimeType().ordinal()))
-                    .filter(lesson -> lesson.getSubgroup() == subgroup || subgroup == Subgroup.BOTH || lesson.getSubgroup() == Subgroup.BOTH)
-                    .map(Lesson::toDto).toList();
-        } else {
-            lessons = lessonRepository.findForTeacher(schedule.get().getId(), teacherName)
-                    .stream()
-                    .sorted(Comparator.comparingInt(lesson -> lesson.getLessonTimeType().ordinal()))
+                    .filter(lesson -> lesson.getSubgroup().isCompatibleWith(request.getSubgroup()))
                     .map(Lesson::toDto)
                     .toList();
-        }
+            case TEACHER -> lessonRepository.findForTeacher(schedule.get().getId(), request.getValue())
+                    .stream()
+                    .map(Lesson::toDto)
+                    .toList();
+        });
+
+        lessons.sort(Comparator.comparingInt(lesson -> lesson.getLessonTimeType().ordinal()));
 
         ScheduleResponse scheduleResponse = ScheduleResponse.builder()
                 .scheduleDate(schedule.get().getScheduleDate())

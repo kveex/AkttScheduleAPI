@@ -1,15 +1,16 @@
 package me.kveex.akttapispringed.service.impl;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import me.kveex.akttapispringed.domain.entity.notification.NotificationSubscriptionMode;
 import me.kveex.akttapispringed.domain.entity.schedule.*;
 import me.kveex.akttapispringed.parser.PDFScheduleParser;
 import me.kveex.akttapispringed.repository.*;
 import me.kveex.akttapispringed.security.ScheduleUserDetails;
 import me.kveex.akttapispringed.service.ScheduleParserService;
-import me.kveex.akttapispringed.service.ScheduleSubscriptionService;
+import me.kveex.akttapispringed.service.NotificationSubscriptionService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -28,11 +29,11 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
     private static final int GROUP_COLUMN_WIDTH = 3;
 
     private final ScheduleRepository scheduleRepository;
-    private final LessonRepository lessonRepository;
     private final TeacherRepository teacherRepository;
     private final GroupRepository groupRepository;
     private final ScheduleUpdateLoggingRepository scheduleUpdateLoggingRepository;
-    private final ScheduleSubscriptionService scheduleSubscriptionService;
+    private final NotificationSubscriptionService notificationSubscriptionService;
+    private final TransactionTemplate transactionTemplate;
 
     private LocalDate savedScheduleDate;
 
@@ -51,7 +52,6 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
     }
 
     public void parsePdf(byte[] bytes, ScheduleUserDetails userDetails) {
-        // TODO: Сделать так, чтобы при парсинге пдф отправлялось оповещение о удачном парсинге, конкретному пользователю, через вебхук
         PDFScheduleParser parser = new PDFScheduleParser(this, scheduleUpdateLoggingRepository, bytes, userDetails);
         parser.parse();
     }
@@ -104,7 +104,6 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
         return infoList;
     }
 
-    @Transactional
     public Optional<Schedule> parse(LocalDateTime editTimeStamp, List<String> scheduleDateLines, List<Info> timeAndInfoForScheduleGroup, boolean isWholeScheduleDistant) {
         boolean scheduleExists = this.scheduleRepository.existsByEditTimeStamp(editTimeStamp);
         LocalDate scheduleDate = collectScheduleDate(scheduleDateLines);
@@ -119,14 +118,13 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
         }
 
         this.savedScheduleDate = scheduleDate;
-        List<Lesson> lessons = new ArrayList<>();
 
         Schedule schedule = Schedule.builder()
                 .editTimeStamp(editTimeStamp)
                 .scheduleDate(scheduleDate)
                 .build();
 
-        Schedule createdSchedule = this.scheduleRepository.save(schedule);
+        List<Lesson> lessons = new ArrayList<>();
 
         for (Info info : timeAndInfoForScheduleGroup) {
             List<Lesson> lessonInfo = buildLessons(info, schedule, isWholeScheduleDistant);
@@ -134,7 +132,13 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
         }
         schedule.setLessons(lessons);
 
-        scheduleSubscriptionService.sendUpdate(editTimeStamp);
+        Schedule createdSchedule = transactionTemplate.execute(_ -> scheduleRepository.save(schedule));
+
+        NotificationSubscriptionMode event = editTimeStamp.toLocalDate().isBefore(LocalDate.now())
+                ? NotificationSubscriptionMode.ALL
+                : NotificationSubscriptionMode.ONLY_NEW;
+
+        notificationSubscriptionService.sendUpdate(event);
         log.info("Добавлено новое расписание на дату: [{}] | Время изменения: [{}]", scheduleDate, editTimeStamp);
 
         return Optional.of(createdSchedule);
@@ -253,7 +257,7 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
                 }
             }
         }
-        return this.lessonRepository.saveAll(result);
+        return result;
     }
 
     private static List<Room> findRooms(String info) {
@@ -438,6 +442,9 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
             case "7,8" -> !todayIsSaturday
                     ? new Pair<>("13:50 - 15:20", LessonTimeType.FOURTH)
                     : new Pair<>("12:00 - 13:10", LessonTimeType.FOURTH_SHORT);
+            case "5п" -> !todayIsSaturday
+                    ? new Pair<>("15:30 - 17:00", LessonTimeType.FIFTH)
+                    : new Pair<>("12:00 - 13:10", LessonTimeType.FIFTH_SHORT);
             case "УП" -> new Pair<>("Учебная практика", LessonTimeType.LEARNING_PRACTICE);
             case "ПП" -> new Pair<>("Производственная практика", LessonTimeType.PRODUCTION_PRACTICE);
             case "ПДП" -> new Pair<>("Пред дипломная практика", LessonTimeType.PRE_DIPLOMA_PRACTICE);

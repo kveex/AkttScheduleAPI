@@ -8,22 +8,27 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.io.IOException;
-
 @RestControllerAdvice
 @SuppressWarnings("unused")
 public class GlobalExceptionHandler {
-    public record ErrorResponse(String error) {
-    }
-
-    @ExceptionHandler(IOException.class)
-    public ResponseEntity<ErrorResponse> handleIOException(IOException exception) {
-        return ResponseEntity.badRequest().body(new ErrorResponse("Не удалось обработать файл с ошибкой: " + exception.getMessage()));
+    public record ErrorResponse(String error, String errorDetails) {
+        public static <T extends RuntimeException> ErrorResponse of(T exception) {
+            return new ErrorResponse(exception.getMessage(), null);
+        }
+        public static ErrorResponse of(String errorMessage) {
+            return new ErrorResponse(errorMessage, null);
+        }
+        public static ErrorResponse of(String errorMessage, String errorDetails) {
+            return new ErrorResponse(errorMessage, errorDetails);
+        }
+        public static <T extends RuntimeException> ErrorResponse of (T exception, String errorDetails) {
+            return new ErrorResponse(exception.getMessage(), errorDetails);
+        }
     }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentialsException(BadCredentialsException ignored) {
-        return new ResponseEntity<>(new ErrorResponse("Неверный логин или пароль!"),  HttpStatus.UNAUTHORIZED);
+        return new ResponseEntity<>(ErrorResponse.of("Неверный логин или пароль!"),  HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -35,22 +40,30 @@ public class GlobalExceptionHandler {
                 .map(DefaultMessageSourceResolvable::getDefaultMessage)
                 .orElse("Неизвестная ошибка валидации!");
 
-        return ResponseEntity.badRequest().body(new ErrorResponse(errorMessage));
+        return ResponseEntity.badRequest().body(ErrorResponse.of(errorMessage, exception.getMessage()));
     }
 
     @ExceptionHandler(BadScheduleRequestException.class)
     public ResponseEntity<ErrorResponse> handleBadScheduleRequestException(BadScheduleRequestException exception) {
-        return ResponseEntity.badRequest().body(new ErrorResponse(exception.getMessage()));
+        return ResponseEntity.badRequest().body(ErrorResponse.of(exception));
     }
 
     @ExceptionHandler(ScheduleNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleScheduleNotFoundException(ScheduleNotFoundException exception) {
-        return new ResponseEntity<>(new ErrorResponse(exception.getMessage()), HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(ErrorResponse.of(exception), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(TakenLoginException.class)
     public ResponseEntity<ErrorResponse> handleTakenLoginException(TakenLoginException exception) {
-        return new ResponseEntity<>(new ErrorResponse(exception.getMessage()), HttpStatus.CONFLICT);
+        return new ResponseEntity<>(ErrorResponse.of(exception), HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(BadPdfParseException.class)
+    public ResponseEntity<ErrorResponse> handleBadPdfParseException(BadPdfParseException exception) {
+        return ResponseEntity.badRequest().body(ErrorResponse.of("Что-то случилось при парсинге PDF-файла!", exception.getMessage()));
+    }
+
+    public ResponseEntity<ErrorResponse> handleEmptyParsedPdfException(EmptyParsedPdfException exception) {
+        return ResponseEntity.badRequest().body(ErrorResponse.of(exception));
+    }
 }

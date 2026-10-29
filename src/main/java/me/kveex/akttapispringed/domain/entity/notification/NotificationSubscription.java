@@ -1,4 +1,4 @@
-package me.kveex.akttapispringed.domain.entity.subscription;
+package me.kveex.akttapispringed.domain.entity.notification;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -11,7 +11,7 @@ import lombok.*;
 @Builder
 @ToString
 @Table(name = "schedule_subscriptions")
-public class ScheduleSubscription {
+public class NotificationSubscription {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -20,10 +20,10 @@ public class ScheduleSubscription {
     private String callbackUrl;
 
     @Enumerated(EnumType.STRING)
-    private ScheduleSubscriptionMode mode;
+    private NotificationSubscriptionMode mode;
 
     @Enumerated(EnumType.STRING)
-    private ScheduleSubscriptionStatus status;
+    private NotificationSendStatus status;
 
     @Column(nullable = false)
     private Integer failureCount;

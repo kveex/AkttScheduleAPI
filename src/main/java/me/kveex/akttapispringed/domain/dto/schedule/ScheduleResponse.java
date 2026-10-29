@@ -1,9 +1,6 @@
 package me.kveex.akttapispringed.domain.dto.schedule;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.ToString;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -12,6 +9,7 @@ import java.util.List;
 @ToString
 @Builder
 @AllArgsConstructor
+@NoArgsConstructor
 public class ScheduleResponse {
     LocalDate scheduleDate;
     List<LessonData> lessons;

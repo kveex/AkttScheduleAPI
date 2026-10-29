@@ -7,27 +7,27 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import me.kveex.akttapispringed.domain.entity.subscription.ScheduleSubscription;
-import me.kveex.akttapispringed.domain.entity.subscription.ScheduleSubscriptionMode;
-import me.kveex.akttapispringed.domain.entity.subscription.ScheduleSubscriptionStatus;
+import me.kveex.akttapispringed.domain.entity.notification.NotificationSubscription;
+import me.kveex.akttapispringed.domain.entity.notification.NotificationSendStatus;
+import me.kveex.akttapispringed.domain.entity.notification.NotificationSubscriptionMode;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class ScheduleSubscriptionRequest {
+public class NotificationSubscriptionRequest {
     @NotBlank
     @Pattern(regexp = "^(http|https)://.*$", message = "Адрес вебхука оказался неправильного формата!")
     String callbackUrl;
 
     @NotNull(message = "Должен быть указан режим для получения уведомлений! (ALL|ONLY_NEW)")
-    ScheduleSubscriptionMode mode;
+    NotificationSubscriptionMode mode;
 
-    public ScheduleSubscription toEntity() {
-        return ScheduleSubscription.builder()
+    public NotificationSubscription toEntity() {
+        return NotificationSubscription.builder()
                 .callbackUrl(callbackUrl)
                 .mode(mode)
-                .status(ScheduleSubscriptionStatus.OK)
+                .status(NotificationSendStatus.OK)
                 .failureCount(0)
                 .build();
     }

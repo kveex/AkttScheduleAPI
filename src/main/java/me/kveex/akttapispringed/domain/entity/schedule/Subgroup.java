@@ -12,4 +12,8 @@ public enum Subgroup {
             default -> BOTH;
         };
     }
+
+    public boolean isCompatibleWith(Subgroup requested) {
+        return this == requested || this == BOTH || requested == BOTH;
+    }
 }

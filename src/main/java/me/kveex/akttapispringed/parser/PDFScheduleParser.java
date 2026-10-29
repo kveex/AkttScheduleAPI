@@ -1,6 +1,8 @@
 package me.kveex.akttapispringed.parser;
 
 import lombok.extern.slf4j.Slf4j;
+import me.kveex.akttapispringed.controller.exceptons.BadPdfParseException;
+import me.kveex.akttapispringed.controller.exceptons.EmptyParsedPdfException;
 import me.kveex.akttapispringed.domain.entity.schedule.Schedule;
 import me.kveex.akttapispringed.domain.entity.schedule.ScheduleUpdateLog;
 import me.kveex.akttapispringed.repository.ScheduleUpdateLoggingRepository;
@@ -83,11 +85,7 @@ public class PDFScheduleParser implements IScheduleParser {
             this.scheduleLines = extractScheduleLines(document);
             this.infos = extractInfos(document);
 
-            if (infos.isEmpty()) {
-                throw new IllegalStateException(
-                        "PDF распарсен, но занятия не обнаружены"
-                );
-            }
+            if (infos.isEmpty()) throw new EmptyParsedPdfException();
 
             Optional<Schedule> scheduleOptional = scheduleParserService.parse(
                     scheduleEditDate(),
@@ -107,7 +105,7 @@ public class PDFScheduleParser implements IScheduleParser {
             }
 
         } catch (IOException e) {
-            log.info("Что-то случилось с PDF файлом: {}", e.getMessage());
+            throw new BadPdfParseException(e.getMessage());
         }
     }
 
