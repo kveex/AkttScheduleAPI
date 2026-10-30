@@ -31,4 +31,9 @@ public class NotificationSubscription {
     public void incrementFailureCount() {
         this.failureCount += 1;
     }
+
+    public void reset() {
+        this.setStatus(NotificationSendStatus.OK);
+        this.setFailureCount(0);
+    }
 }

@@ -31,18 +31,17 @@ public class HTMLScheduleParser implements IScheduleParser {
 
     @Scheduled(fixedRate = 30, timeUnit = TimeUnit.MINUTES, initialDelay = 1)
     private void updateDocument() {
-        Document newDocument = null;
         try {
-            newDocument = Jsoup.connect(URL).get();
+            document = Jsoup.connect(URL).get();
         }
         catch (ConnectException e) {
             log.error("Ошибка подключения к сайту АКТТ! Проверьте подключение к интернету или настройки сети!");
-
+            return;
         }
         catch (IOException e) {
             log.error("Документ HTML парсера не обновлён! Причина: {}", e.toString());
+            return;
         }
-        if (newDocument != null) document = newDocument;
         this.parse();
     }
 

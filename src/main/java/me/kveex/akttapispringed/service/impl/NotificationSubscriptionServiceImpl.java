@@ -57,14 +57,14 @@ public class NotificationSubscriptionServiceImpl implements NotificationSubscrip
 
             try {
                 retryTemplate.invoke(() -> postUpdate(subscription.getCallbackUrl()));
+                subscription.reset();
             } catch (ResourceAccessException _) {
-                log.error("Не удалось оповестить по вебхуку [{}]", subscription.getCallbackUrl());
-                subscription.setStatus(NotificationSendStatus.FAILED);
                 subscription.incrementFailureCount();
-
-                notificationSubscriptionRepository.save(subscription);
+                subscription.setStatus(NotificationSendStatus.FAILED);
+                log.error("Не удалось оповестить по вебхуку [{}]", subscription.getCallbackUrl());
             }
 
+            notificationSubscriptionRepository.save(subscription);
         }
     }
 
