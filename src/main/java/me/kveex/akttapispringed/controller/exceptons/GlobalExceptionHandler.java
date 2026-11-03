@@ -65,11 +65,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EmptyParsedPdfException.class)
     public ResponseEntity<ErrorResponse> handleEmptyParsedPdfException(EmptyParsedPdfException exception) {
-        return ResponseEntity.badRequest().body(ErrorResponse.of(exception));
+        return ResponseEntity.badRequest().body(ErrorResponse.of(exception, "EMPTY"));
     }
 
     @ExceptionHandler(ScheduleAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleScheduleAlreadyExistsException(ScheduleAlreadyExistsException exception) {
-        return ResponseEntity.badRequest().body(ErrorResponse.of(exception));
+        return ResponseEntity.badRequest().body(ErrorResponse.of(exception, "ALREADY_EXISTS"));
     }
 }
