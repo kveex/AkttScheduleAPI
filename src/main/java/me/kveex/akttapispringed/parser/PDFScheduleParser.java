@@ -3,6 +3,7 @@ package me.kveex.akttapispringed.parser;
 import lombok.extern.slf4j.Slf4j;
 import me.kveex.akttapispringed.controller.exceptons.BadPdfParseException;
 import me.kveex.akttapispringed.controller.exceptons.EmptyParsedPdfException;
+import me.kveex.akttapispringed.controller.exceptons.ScheduleAlreadyExistsException;
 import me.kveex.akttapispringed.domain.entity.schedule.Schedule;
 import me.kveex.akttapispringed.domain.entity.schedule.ScheduleUpdateLog;
 import me.kveex.akttapispringed.repository.ScheduleUpdateLoggingRepository;
@@ -102,6 +103,8 @@ public class PDFScheduleParser implements IScheduleParser {
                         .build();
 
                 this.scheduleUpdateLoggingRepository.save(updateLog);
+            } else {
+                throw new ScheduleAlreadyExistsException(scheduleEditDate());
             }
 
         } catch (IOException e) {

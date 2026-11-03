@@ -63,7 +63,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ErrorResponse.of("Что-то случилось при парсинге PDF-файла!", exception.getMessage()));
     }
 
+    @ExceptionHandler(EmptyParsedPdfException.class)
     public ResponseEntity<ErrorResponse> handleEmptyParsedPdfException(EmptyParsedPdfException exception) {
+        return ResponseEntity.badRequest().body(ErrorResponse.of(exception));
+    }
+
+    @ExceptionHandler(ScheduleAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleScheduleAlreadyExistsException(ScheduleAlreadyExistsException exception) {
         return ResponseEntity.badRequest().body(ErrorResponse.of(exception));
     }
 }
