@@ -51,9 +51,10 @@ public class Lesson {
     private LessonType lessonType;
 
     public LessonData toDto() {
+        String teacherName = teacher != null ? teacher.getName() : "Не указан";
         return LessonData.builder()
                 .groupName(group.getName())
-                .teacherName(teacher.getName())
+                .teacherName(teacherName)
                 .lessonTime(lessonTime)
                 .lessonTimeType(lessonTimeType)
                 .subjectName(subjectName)
