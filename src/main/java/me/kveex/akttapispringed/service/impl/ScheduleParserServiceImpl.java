@@ -2,6 +2,7 @@ package me.kveex.akttapispringed.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import me.kveex.akttapispringed.domain.dto.schedule.ScheduleDateStatus;
 import me.kveex.akttapispringed.domain.entity.notification.NotificationSubscriptionMode;
 import me.kveex.akttapispringed.domain.entity.schedule.*;
 import me.kveex.akttapispringed.parser.PDFScheduleParser;
@@ -51,8 +52,8 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
         B getSecond() { return second; }
     }
 
-    public void parsePdf(byte[] bytes, ScheduleUserDetails userDetails) {
-        PDFScheduleParser parser = new PDFScheduleParser(this, scheduleUpdateLoggingRepository, bytes, userDetails);
+    public void parsePdf(byte[] bytes, LocalDate manualDate, ScheduleUserDetails userDetails) {
+        PDFScheduleParser parser = new PDFScheduleParser(this, scheduleUpdateLoggingRepository, bytes, manualDate, userDetails);
         parser.parse();
     }
 
@@ -106,22 +107,23 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
 
     public Optional<Schedule> parse(LocalDateTime editTimeStamp, List<String> scheduleDateLines, List<Info> timeAndInfoForScheduleGroup, boolean isWholeScheduleDistant) {
         boolean scheduleExists = this.scheduleRepository.existsByEditTimeStamp(editTimeStamp);
-        LocalDate scheduleDate = collectScheduleDate(scheduleDateLines);
+        Pair<LocalDate, ScheduleDateStatus> dateStatusPair = collectScheduleDate(scheduleDateLines, editTimeStamp.toLocalDate());
 
         if (scheduleExists) {
             log.debug(
                     "Расписание с датой [{}] и временем изменения [{}] уже существует, ничего не делаем",
-                    scheduleDate,
+                    dateStatusPair.getFirst(),
                     editTimeStamp.toString().replace("T", " ")
             );
             return Optional.empty();
         }
 
-        this.savedScheduleDate = scheduleDate;
+        this.savedScheduleDate = dateStatusPair.getFirst();
 
         Schedule schedule = Schedule.builder()
                 .editTimeStamp(editTimeStamp)
-                .scheduleDate(scheduleDate)
+                .scheduleDate(dateStatusPair.getFirst())
+                .dateStatus(dateStatusPair.getSecond())
                 .build();
 
         List<Lesson> lessons = new ArrayList<>();
@@ -139,7 +141,7 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
                 : NotificationSubscriptionMode.ONLY_NEW;
 
         notificationSubscriptionService.sendUpdate(event);
-        log.info("Добавлено новое расписание на дату: [{}] | Время изменения: [{}]", scheduleDate, editTimeStamp);
+        log.info("Добавлено новое расписание на дату: [{}] | Время изменения: [{}]", dateStatusPair.getFirst(), editTimeStamp);
 
         return Optional.of(createdSchedule);
     }
@@ -148,7 +150,7 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
      * Получает дату на которую рассчитано расписание из документа
      * @return LocalDate класс с датой
      */
-    private LocalDate collectScheduleDate(List<String> scheduleDateLines) {
+    private Pair<LocalDate, ScheduleDateStatus> collectScheduleDate(List<String> scheduleDateLines, LocalDate editTimeStamp) {
         String[] dateParts = new String[8];
         List<String> months = List.of(
                 "янв", "фев",
@@ -188,10 +190,12 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
         }
 
         if (year < 2000 || month < 1 || day < 1) {
-            throw new IllegalStateException("Не удалось получить дату расписания, вероятно указание не было найдено в документе");
+            LocalDate assumedScheduleDate = editTimeStamp.plusDays(1);
+            if (editTimeStamp.getDayOfWeek() == DayOfWeek.SATURDAY) assumedScheduleDate.plusDays(1);
+            return new Pair<>(assumedScheduleDate, ScheduleDateStatus.ASSUMED);
         }
 
-        return LocalDate.of(year, month, day);
+        return new Pair<>(LocalDate.of(year, month, day), ScheduleDateStatus.REAL);
     }
 
     private List<Lesson> buildLessons(Info info, Schedule schedule, boolean isWholeScheduleDistant) {

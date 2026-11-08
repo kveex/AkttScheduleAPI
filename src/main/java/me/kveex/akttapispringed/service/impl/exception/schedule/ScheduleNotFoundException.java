@@ -1,4 +1,4 @@
-package me.kveex.akttapispringed.controller.exceptons;
+package me.kveex.akttapispringed.service.impl.exception.schedule;
 
 public class ScheduleNotFoundException extends RuntimeException {
     public ScheduleNotFoundException() {

@@ -2,6 +2,9 @@ package me.kveex.akttapispringed.parser;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import me.kveex.akttapispringed.domain.entity.schedule.Schedule;
+import me.kveex.akttapispringed.domain.entity.schedule.ScheduleUpdateLog;
+import me.kveex.akttapispringed.repository.ScheduleUpdateLoggingRepository;
 import me.kveex.akttapispringed.service.ScheduleParserService;
 import me.kveex.akttapispringed.service.impl.ScheduleParserServiceImpl;
 import org.jsoup.Jsoup;
@@ -18,6 +21,7 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -28,6 +32,7 @@ public class HTMLScheduleParser implements IScheduleParser {
     private Document document;
     private static final String URL = "https://aktt.org/raspisaniya/izmenenie-v-raspisanii-dnevnogo-otdeleniya.html";
     private final ScheduleParserService scheduleParserService;
+    private final ScheduleUpdateLoggingRepository scheduleUpdateLoggingRepository;
 
     @Scheduled(fixedRate = 30, timeUnit = TimeUnit.MINUTES, initialDelay = 1)
     private void updateDocument() {
@@ -47,12 +52,22 @@ public class HTMLScheduleParser implements IScheduleParser {
 
     @Override
     public void parse() {
-        this.scheduleParserService.parse(
+        Optional<Schedule> scheduleOptional = this.scheduleParserService.parse(
                 scheduleEditDate(),
                 scheduleDateLines(),
                 timeAndInfoForScheduleGroup(),
                 isWholeScheduleDistant()
         );
+
+        if (scheduleOptional.isPresent()) {
+            ScheduleUpdateLog updateLog = ScheduleUpdateLog.builder()
+                    .schedule(scheduleOptional.get())
+                    .timestamp(LocalDateTime.now())
+                    .build();
+
+            this.scheduleUpdateLoggingRepository.save(updateLog);
+        }
+
     }
 
     @Override

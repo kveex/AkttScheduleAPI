@@ -2,6 +2,7 @@ package me.kveex.akttapispringed.domain.entity.schedule;
 
 import jakarta.persistence.*;
 import lombok.*;
+import me.kveex.akttapispringed.domain.dto.schedule.ScheduleDateStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -26,6 +27,10 @@ public class Schedule {
 
     @Column(name = "schedule_date", nullable = false)
     private LocalDate scheduleDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "date_status", nullable = false)
+    private ScheduleDateStatus dateStatus;
 
     @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Lesson> lessons = new ArrayList<>();

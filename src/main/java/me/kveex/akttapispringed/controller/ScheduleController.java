@@ -3,7 +3,7 @@ package me.kveex.akttapispringed.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import me.kveex.akttapispringed.controller.exceptons.ScheduleNotFoundException;
+import me.kveex.akttapispringed.service.impl.exception.schedule.ScheduleNotFoundException;
 import me.kveex.akttapispringed.domain.dto.schedule.LessonData;
 import me.kveex.akttapispringed.domain.dto.schedule.ScheduleRequest;
 import me.kveex.akttapispringed.domain.dto.schedule.ScheduleResponse;
@@ -38,8 +38,8 @@ public class ScheduleController {
     private final LessonRepository lessonRepository;
 
     @PostMapping("/pdf")
-    public ResponseEntity<Void> loadPdf(@RequestParam("file") MultipartFile file, @AuthenticationPrincipal ScheduleUserDetails userDetails) throws IOException {
-        this.scheduleParserService.parsePdf(file.getBytes(), userDetails);
+    public ResponseEntity<Void> loadPdf(@RequestParam("file") MultipartFile file, @RequestParam(required = false) LocalDate manualDate, @AuthenticationPrincipal ScheduleUserDetails userDetails) throws IOException {
+        this.scheduleParserService.parsePdf(file.getBytes(), manualDate, userDetails);
         return ResponseEntity.ok().build();
     }
 
@@ -84,6 +84,7 @@ public class ScheduleController {
 
         ScheduleResponse scheduleResponse = ScheduleResponse.builder()
                 .scheduleDate(schedule.get().getScheduleDate())
+                .scheduleDateStatus(schedule.get().getDateStatus())
                 .lessons(lessons)
                 .build();
 

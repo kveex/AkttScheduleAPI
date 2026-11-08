@@ -1,4 +1,4 @@
-package me.kveex.akttapispringed.controller.exceptons;
+package me.kveex.akttapispringed.service.impl.exception.schedule;
 
 public class BadPdfParseException extends RuntimeException {
     public BadPdfParseException(String message) {

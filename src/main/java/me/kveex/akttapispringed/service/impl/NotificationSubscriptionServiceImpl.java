@@ -1,7 +1,9 @@
 package me.kveex.akttapispringed.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
+import me.kveex.akttapispringed.service.impl.exception.notification.NotValidWebhookException;
 import me.kveex.akttapispringed.domain.dto.subscription.NotificationSubscriptionRequest;
+import me.kveex.akttapispringed.domain.dto.subscription.ScheduleUpdate;
 import me.kveex.akttapispringed.domain.dto.subscription.ScheduleEvent;
 import me.kveex.akttapispringed.domain.entity.notification.NotificationSubscription;
 import me.kveex.akttapispringed.domain.entity.notification.NotificationSendStatus;
@@ -9,7 +11,10 @@ import me.kveex.akttapispringed.domain.entity.notification.NotificationSubscript
 import me.kveex.akttapispringed.repository.NotificationSubscriptionRepository;
 import me.kveex.akttapispringed.service.NotificationSubscriptionService;
 import org.springframework.core.retry.RetryTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
@@ -33,13 +38,20 @@ public class NotificationSubscriptionServiceImpl implements NotificationSubscrip
 
     @Override
     public void upsertSubscription(NotificationSubscriptionRequest request) {
-        notificationSubscriptionRepository
-                .findByCallbackUrl(request.getCallbackUrl())
-                .map(existing -> {
-                    existing.setMode(request.getMode());
-                    return notificationSubscriptionRepository.save(existing);
-                })
-                .orElseGet(() -> notificationSubscriptionRepository.save(request.toEntity()));
+        try {
+            HttpStatusCode code = postUpdate(request.getCallbackUrl(), ScheduleEvent.WEBHOOK_TEST);
+            if (code == HttpStatusCode.valueOf(HttpStatus.OK.value())) {
+                notificationSubscriptionRepository
+                        .findByCallbackUrl(request.getCallbackUrl())
+                        .map(existing -> {
+                            existing.setMode(request.getMode());
+                            return notificationSubscriptionRepository.save(existing);
+                        })
+                        .orElseGet(() -> notificationSubscriptionRepository.save(request.toEntity()));
+            }
+        } catch (ResourceAccessException _) {
+            throw new NotValidWebhookException(request.getCallbackUrl());
+        }
     }
 
     @Override
@@ -56,7 +68,7 @@ public class NotificationSubscriptionServiceImpl implements NotificationSubscrip
             }
 
             try {
-                retryTemplate.invoke(() -> postUpdate(subscription.getCallbackUrl()));
+                retryTemplate.invoke(() -> postUpdate(subscription.getCallbackUrl(), ScheduleEvent.SCHEDULE_UPDATE));
                 subscription.reset();
             } catch (ResourceAccessException _) {
                 subscription.incrementFailureCount();
@@ -68,14 +80,16 @@ public class NotificationSubscriptionServiceImpl implements NotificationSubscrip
         }
     }
 
-    private void postUpdate(String callbackUrl) {
-        ScheduleEvent update = ScheduleEvent.create();
+    private HttpStatusCode postUpdate(String callbackUrl, ScheduleEvent event) {
+        ScheduleUpdate update = ScheduleUpdate.create(event);
 
-        this.restClient.post()
+        ResponseEntity<Void> response = this.restClient.post()
                 .uri(callbackUrl)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(update)
                 .retrieve()
                 .toBodilessEntity();
+
+        return response.getStatusCode();
     }
 }

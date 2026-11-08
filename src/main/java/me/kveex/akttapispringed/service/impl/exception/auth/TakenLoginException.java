@@ -1,4 +1,4 @@
-package me.kveex.akttapispringed.controller.exceptons;
+package me.kveex.akttapispringed.service.impl.exception.auth;
 
 public class TakenLoginException extends RuntimeException {
     public TakenLoginException() {

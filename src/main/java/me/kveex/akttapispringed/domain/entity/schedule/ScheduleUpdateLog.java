@@ -20,7 +20,7 @@ public class ScheduleUpdateLog {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "schedule_id")
+    @JoinColumn(name = "schedule_id", nullable = false)
     private Schedule schedule;
 
     @ManyToOne

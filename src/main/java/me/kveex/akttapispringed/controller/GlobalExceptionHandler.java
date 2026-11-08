@@ -1,5 +1,8 @@
-package me.kveex.akttapispringed.controller.exceptons;
+package me.kveex.akttapispringed.controller;
 
+import me.kveex.akttapispringed.service.impl.exception.auth.TakenLoginException;
+import me.kveex.akttapispringed.service.impl.exception.notification.NotValidWebhookException;
+import me.kveex.akttapispringed.service.impl.exception.schedule.*;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -71,5 +74,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ScheduleAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleScheduleAlreadyExistsException(ScheduleAlreadyExistsException exception) {
         return ResponseEntity.badRequest().body(ErrorResponse.of(exception, "ALREADY_EXISTS"));
+    }
+
+    @ExceptionHandler(NotValidWebhookException.class)
+    public ResponseEntity<ErrorResponse> handleNotValidWebhookException(NotValidWebhookException exception) {
+        return ResponseEntity.badRequest().body(ErrorResponse.of(exception));
+    }
+
+    @ExceptionHandler(InvalidPdfScheduleDateException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidPdfScheduleDateException(InvalidPdfScheduleDateException exception) {
+        return ResponseEntity.badRequest().body(ErrorResponse.of(exception, "UNRECOGNISABLE_DATE"));
     }
 }

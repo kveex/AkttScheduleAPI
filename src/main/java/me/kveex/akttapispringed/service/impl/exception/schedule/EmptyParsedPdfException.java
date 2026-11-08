@@ -1,4 +1,4 @@
-package me.kveex.akttapispringed.controller.exceptons;
+package me.kveex.akttapispringed.service.impl.exception.schedule;
 
 public class EmptyParsedPdfException extends RuntimeException {
     public EmptyParsedPdfException() {

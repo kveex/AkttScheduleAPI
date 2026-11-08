@@ -12,5 +12,6 @@ import java.util.List;
 @NoArgsConstructor
 public class ScheduleResponse {
     LocalDate scheduleDate;
+    ScheduleDateStatus scheduleDateStatus;
     List<LessonData> lessons;
 }

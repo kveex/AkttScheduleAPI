@@ -1,9 +1,11 @@
 package me.kveex.akttapispringed.parser;
 
 import lombok.extern.slf4j.Slf4j;
-import me.kveex.akttapispringed.controller.exceptons.BadPdfParseException;
-import me.kveex.akttapispringed.controller.exceptons.EmptyParsedPdfException;
-import me.kveex.akttapispringed.controller.exceptons.ScheduleAlreadyExistsException;
+import me.kveex.akttapispringed.domain.dto.schedule.ScheduleDateStatus;
+import me.kveex.akttapispringed.service.impl.exception.schedule.BadPdfParseException;
+import me.kveex.akttapispringed.service.impl.exception.schedule.EmptyParsedPdfException;
+import me.kveex.akttapispringed.service.impl.exception.schedule.InvalidPdfScheduleDateException;
+import me.kveex.akttapispringed.service.impl.exception.schedule.ScheduleAlreadyExistsException;
 import me.kveex.akttapispringed.domain.entity.schedule.Schedule;
 import me.kveex.akttapispringed.domain.entity.schedule.ScheduleUpdateLog;
 import me.kveex.akttapispringed.repository.ScheduleUpdateLoggingRepository;
@@ -18,6 +20,7 @@ import org.apache.pdfbox.text.PDFTextStripperByArea;
 
 import java.awt.geom.Rectangle2D;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -32,6 +35,7 @@ public class PDFScheduleParser implements IScheduleParser {
     private final ScheduleUpdateLoggingRepository scheduleUpdateLoggingRepository;
     private final byte[] bytes;
     private final ScheduleUserDetails userDetails;
+    private final LocalDate manualScheduleDate;
 
     private PDDocument document;
 
@@ -70,10 +74,12 @@ public class PDFScheduleParser implements IScheduleParser {
             ScheduleParserServiceImpl scheduleParserService,
             ScheduleUpdateLoggingRepository scheduleUpdateLoggingRepository,
             byte[] bytes,
+            LocalDate manualScheduleDate,
             ScheduleUserDetails userDetails
     ) {
         this.scheduleParserService = scheduleParserService;
         this.scheduleUpdateLoggingRepository = scheduleUpdateLoggingRepository;
+        this.manualScheduleDate = manualScheduleDate;
         this.bytes = bytes;
         this.userDetails = userDetails;
     }
@@ -96,6 +102,14 @@ public class PDFScheduleParser implements IScheduleParser {
             );
 
             if (scheduleOptional.isPresent()) {
+                if (scheduleOptional.get().getDateStatus() == ScheduleDateStatus.ASSUMED) {
+                    if (this.manualScheduleDate != null) {
+                        scheduleOptional.get().setScheduleDate(this.manualScheduleDate);
+                    } else {
+                        throw new InvalidPdfScheduleDateException();
+                    }
+                }
+
                 ScheduleUpdateLog updateLog = ScheduleUpdateLog.builder()
                         .schedule(scheduleOptional.get())
                         .user(userDetails.getUser())
