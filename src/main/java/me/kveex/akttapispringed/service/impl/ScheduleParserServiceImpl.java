@@ -276,6 +276,10 @@ public class ScheduleParserServiceImpl implements ScheduleParserService {
                 start = matcher.start();
                 try {
                     int roomNum = Integer.parseInt(found.replaceAll("[аб]", ""));
+                    if (roomNum > 100) {
+                        found = found.substring(0, 2);
+                        log.warn("Вероятно не существующий документ был замечен! Старый: {} Новый: {}", roomNum, found);
+                    }
                     isInSecondCampus = roomNum > 35 && roomNum <= 85;
                 } catch (NumberFormatException ignored) {}
             }

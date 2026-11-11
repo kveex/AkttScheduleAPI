@@ -62,7 +62,7 @@ public class ScheduleController {
         Optional<LocalDate> scheduleDate = Optional.ofNullable(request.getScheduleDate());
         Optional<Schedule> schedule = scheduleDate.isEmpty()
             ? scheduleRepository.findFirstByOrderByScheduleDateDesc()
-            : scheduleRepository.getScheduleByScheduleDate(scheduleDate.get());
+            : scheduleRepository.findFirstByScheduleDateOrderByEditTimeStampDesc(scheduleDate.get());
 
         if (schedule.isEmpty()) {
             throw new ScheduleNotFoundException();

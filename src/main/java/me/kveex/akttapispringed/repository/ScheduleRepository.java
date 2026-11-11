@@ -14,5 +14,5 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     Optional<Schedule> findFirstByOrderByScheduleDateDesc();
 
-    Optional<Schedule> getScheduleByScheduleDate(LocalDate scheduleDate);
+    Optional<Schedule> findFirstByScheduleDateOrderByEditTimeStampDesc(LocalDate scheduleDate);
 }
